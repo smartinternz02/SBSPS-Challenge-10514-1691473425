@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html class='use-all-space'>
+
+<head>
+    <meta http-equiv='X-UA-Compatible' content='IE=Edge' />
+    <meta charset='UTF-8'>
+    <title>Maps SDK for Web - Routing A-B</title>
+    <meta name='viewport' content='width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <link rel='stylesheet' type='text/css' href='https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.23.0/maps/maps.css'>
+    <link rel='stylesheet' type='text/css' href='../assets/ui-library/index.css' />
+    <link rel='stylesheet' type='text/css' href='../assets/ui-library/icons-css/routing.css' />
+    <link rel='stylesheet' type='text/css'
+        href='https://api.tomtom.com/maps-sdk-for-web/cdn/plugins/SearchBox/3.2.0//SearchBox.css' />
+    <link rel='stylesheet' type='text/css' href='../assets/ui-library/icons-css/poi.css' />
+    <script src='https://api.tomtom.com/maps-sdk-for-web/cdn/plugins/SearchBox/3.2.0//SearchBox-web.js'></script>
+</head>
+<style>
+    #foldable {
+        width: 320px;
+    }
+
+    #form {
+        margin-top: 10px;
+    }
+
+    .icon {
+        background-size: cover;
+        height: 30px;
+        width: 30px;
+    }
+
+    .tt-icon-size {
+        height: 18px !important;
+        padding: 8px;
+        width: 18px !important;
+    }
+
+    .icon-spacing-right {
+        margin-right: 12px;
+        margin-top: 22px;
+    }
+
+    .icon-spacing-left {
+        margin-left: 12px;
+        margin-top: 24px;
+    }
+
+    .tt-search-box-input {
+        width: calc(100% - 25px) !important;
+    }
+
+    .searchbox-container {
+        display: flex;
+    }
+
+    .searchbox-container>.tt-search-box {
+        flex: 1;
+        padding-right: 26px;
+    }
+
+    .my-location-button {
+        background-image: url("https://api.tomtom.com/maps-sdk-for-web/cdn/static/my-location.svg");
+        cursor: pointer;
+        margin-left: 7px;
+        padding: 12px;
+    }
+
+    .my-location-button:hover {
+        background-image: url("https://api.tomtom.com/maps-sdk-for-web/cdn/static/my-location-hover.svg");
+    }
+
+    .route-marker {
+        align-items: center;
+        background-color: #4a90e2;
+        border: solid 3px #2faaff;
+        border-radius: 50%;
+        display: flex;
+        height: 32px;
+        justify-content: center;
+        transition: width .1s, height .1s;
+        width: 32px;
+    }
+    .container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+}
+
+.input-section {
+    margin-top: 20px;
+}
+
+label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+button {
+    display: block;
+    margin: 20px auto;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+.result-section {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.result-section h2 {
+    margin-top: 0;
+    color: #007bff;
+}
+
+.result-section p {
+    font-size: 18px;
+    font-weight: bold;
+}
+</style>
+
+<body>
+    <div id='map' class='map'>
+        <div id='foldable' class='tt-overlay-panel -left-top -medium js-foldable'>
+            <form id=form>
+                <div id='startSearchBox' class='searchbox-container'>
+                    <div class='tt-icon tt-icon-size icon-spacing-right -start'></div>
+                </div>
+                <div id='finishSearchBox' class='searchbox-container'>
+                    <div class='tt-icon tt-icon-size icon-spacing-right -finish'></div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class='map-view'>
+        <div class='tt-side-panel'>
+            <header class='tt-side-panel__header'>
+            </header>
+            <div class='tt-tabs js-tabs'>
+                <div class='tt-tabs__panel'>
+                    <div class='js-results' hidden='hidden'></div>
+                    <div class='js-results-loader' hidden='hidden'>
+                        <div class='loader-center'><span class='loader'></span></div>
+                    </div>
+                    <div class='tt-tabs__placeholder js-results-placeholder'></div>
+                </div>
+            </div>
+        </div>
+        <div id='map' class='full-map'></div>
+    </div>
+<div class="container">
+    <div class="input-section">
+        <label for="chargingPercentage">Charging Percentage (%)</label>
+        <input type="number" id="chargingPercentage" placeholder="Enter charging percentage">
+    </div>
+
+    <div class="input-section">
+        <label for="batteryCapacity">Battery Capacity (kWh)</label>
+        <input type="number" id="batteryCapacity" placeholder="Enter battery capacity">
+    </div>
+    
+
+    <!-- Add a button for calculating route and finding the best charging station -->
+    <button id="calculateRoute">Calculate Route and Find Charging Station</button>
+    <div class="result-section">
+        <h2>Total Distance Your Vehicle Can Cover:</h2>
+        <p id="totalDistance">Calculating...</p>
+    </div>
+
+    <div class="result-section">
+        <h2>Best Charging Station:</h2>
+        <p id="bestChargingStation">Calculating...</p>
+    </div>
+
+    <div class="result-section">
+        <h2>Nearest Charging Station:</h2>
+        <p id="nearestChargingStation">Calculating...</p>
+    </div> 
+</div>
+
+    <!-- Add input field for custom charging station -->
+    <input type="text" id="customChargingStation" placeholder="Custom Charging Station Name">
+    <!-- Add a button for adding custom charging stations and finding the nearest charging station -->
+    <button id="addCustomStation">Add Custom Charging Station</button>
+
+    <script src='https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.23.0/maps/maps-web.min.js'></script>
+    <script src='https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.23.0/services/services-web.min.js'></script>
+    <script src='https://api.tomtom.com/maps-sdk-for-web/cdn/plugins/SearchBox/3.2.0//SearchBox-web.js'></script>
+    <script data-showable type='text/javascript' src='../assets/js/mobile-or-tablet.js'></script>
+    <script data-showable type='text/javascript' src='../assets/js/search-markers/search-marker.js'></script>
+    <script data-showable type='text/javascript' src='../assets/js/search/search-results-parser.js'></script>
+    <script data-showable type='text/javascript' src='../assets/js/search-markers/search-markers-manager.js'></script>
+    <script data-showable type='text/javascript' src='../assets/js/info-hint.js'></script>
+    <script data-showable type='text/javascript' src='../assets/js/search/searchbox-enter-submit.js'></script>
+    <script data-showable type='text/javascript' src='../assets/js/foldable.js'></script>
+    <script data-showable type='text/javascript' src='../assets/js/search/results-manager.js'></script>
+    <script data-showable type='text/javascript' src='../assets/js/search/side-panel.js'></script>
+    <script data-showable type='text/javascript' src='../assets/js/search/dom-helpers.js'></script>
+    <script data-showable type='text/javascript' src='../assets/js/formatters.js'></script>
+    <script>
+        var map = tt.map({
+            key: 'OlO8VIsbJqdvsN93cH4a1ZsXdxXjJFvq',
+            container: 'map',
+            center: [15.4, 53.0],
+            zoom: 3,
+            dragPan: !window.isMobileOrTablet()
+        });
+        map.addControl(new tt.FullscreenControl());
+        map.addControl(new tt.NavigationControl());
+        new Foldable('#foldable', 'top-right');
+
+        var bounds = new tt.LngLatBounds();
+
+        function RoutingAB() {
+            this.state = {
+                start: undefined,
+                finish: undefined,
+                marker: {
+                    start: undefined,
+                    finish: undefined
+                }
+            };
+
+            this.startSearchbox = this.createSearchBox('start');
+            this.createSearchBox('finish');
+
+            this.closeButton = document.querySelector('.tt-search-box-close-icon');
+            this.startSearchboxInput = this.startSearchbox.getSearchBoxHTML().querySelector('.tt-search-box-input');
+
+            this.startSearchboxInput.addEventListener('input', this.handleSearchboxInputChange.bind(this));
+
+            this.createMyLocationButton();
+            this.switchToMyLocationButton();
+
+            this.errorHint = new InfoHint('error', 'bottom-center', 5000)
+                .addTo(document.getElementById('map'));
+        }
+
+        RoutingAB.prototype.createMyLocationButton = function () {
+            this.upperSearchboxIcon = document.createElement('div');
+            this.upperSearchboxIcon.setAttribute('class', 'my-location-button');
+
+            this.upperSearchboxIcon.addEventListener('click', function () {
+                navigator.geolocation.getCurrentPosition(
+                    this.reverseGeocodeCurrentPosition.bind(this),
+                    this.handleError.bind(this)
+                );
+            }.bind(this));
+        };
+
+        RoutingAB.prototype.handleSearchboxInputChange = function (event) {
+            var inputContent = event.target.value;
+
+            if (inputContent.length > 0) {
+                this.setCloseButton();
+            } else {
+                var resultList = this.startSearchbox.getSearchBoxHTML().querySelector('.tt-search-box-result-list');
+
+                if (resultList || inputContent.length === 0) {
+                    return;
+                }
+
+                this.onResultCleared('start');
+            }
+        };
+
+        RoutingAB.prototype.reverseGeocodeCurrentPosition = function (position) {
+            this.state.start = [position.coords.longitude, position.coords.latitude];
+
+            tt.services.reverseGeocode({
+                key: 'OlO8VIsbJqdvsN93cH4a1ZsXdxXjJFvq',
+                position: this.state.start
+            })
+                .then(this.handleRevGeoResponse.bind(this))
+                .catch(this.handleError.bind(this));
+        };
+
+        RoutingAB.prototype.handleRevGeoResponse = function (response) {
+            var place = response.addresses[0];
+            this.state.start = [place.position.lng, place.position.lat];
+            this.startSearchbox.setValue(place.address.freeformAddress);
+            this.onResultSelected(place, 'start');
+        };
+
+        RoutingAB.prototype.calculateRoute = function () {
+            if (map.getLayer('route')) {
+                map.removeLayer('route');
+                map.removeSource('route');
+            }
+
+            if (!this.state.start || !this.state.finish) {
+                return;
+            }
+            this.errorHint.hide();
+            var startPos = this.state.start.join(',');
+            var finalPos = this.state.finish.join(',');
+
+            tt.services.calculateRoute({
+                key: 'OlO8VIsbJqdvsN93cH4a1ZsXdxXjJFvq',
+                traffic: false,
+                locations: startPos + ':' + finalPos
+            })
+                .then(function (response) {
+                    var geojson = response.toGeoJson();
+                    map.addLayer({
+                        'id': 'route',
+                        'type': 'line',
+                        'source': {
+                            'type': 'geojson',
+                            'data': geojson
+                        },
+                        'paint': {
+                            'line-color': '#2faaff',
+                            'line-width': 8
+                        }
+                    }, this.findFirstBuildingLayerId());
+
+                    var coordinates = geojson.features[0].geometry.coordinates;
+                    this.updateRoutesBounds(coordinates);
+                }.bind(this))
+                .catch(this.handleError.bind(this));
+        };
+
+        RoutingAB.prototype.handleError = function (error) {
+            this.errorHint.setErrorMessage(error);
+        };
+
+        RoutingAB.prototype.drawMarker = function (type, viewport) {
+            if (this.state.marker[type]) {
+                this.state.marker[type].remove();
+            }
+
+            var marker = document.createElement('div');
+            var innerElement = document.createElement('div');
+
+            marker.className = 'route-marker';
+            innerElement.className = 'icon tt-icon -white -' + type;
+            marker.appendChild(innerElement);
+
+            this.state.marker[type] = new tt.Marker({ element: marker })
+                .setLngLat(this.state[type])
+                .addTo(map);
+
+            this.updateBounds(viewport);
+        };
+
+        RoutingAB.prototype.updateBounds = function (viewport) {
+            bounds = new tt.LngLatBounds();
+
+            if (this.state.start) {
+                bounds.extend(tt.LngLat.convert(this.state.start));
+            }
+            if (this.state.finish) {
+                bounds.extend(tt.LngLat.convert(this.state.finish));
+            }
+
+            if (viewport) {
+                bounds.extend(tt.LngLat.convert(viewport.topLeftPoint));
+                bounds.extend(tt.LngLat.convert(viewport.btmRightPoint));
+            }
+
+            if (!bounds.isEmpty()) {
+                map.fitBounds(bounds, { duration: 0, padding: 50 });
+            }
+        };
+
+        RoutingAB.prototype.updateRoutesBounds = function (coordinates) {
+            bounds = new tt.LngLatBounds();
+
+            coordinates.forEach(function (point) {
+                bounds.extend(tt.LngLat.convert(point));
+            });
+
+            if (!bounds.isEmpty()) {
+                map.fitBounds(bounds, { duration: 0, padding: 50 });
+            }
+        };
+
+        RoutingAB.prototype.createSearchBox = function (type) {
+            var searchBox = new tt.plugins.SearchBox(tt.services, {
+                showSearchButton: false,
+                searchOptions: {
+                    key: 'OlO8VIsbJqdvsN93cH4a1ZsXdxXjJFvq'
+                },
+                labels: {
+                    placeholder: 'Query e.g. Washington'
+                }
+            });
+            document.getElementById(type + 'SearchBox').appendChild(searchBox.getSearchBoxHTML());
+
+            searchBox.on('tomtom.searchbox.resultsfound', function (event) {
+                handleEnterSubmit(event, this.onResultSelected.bind(this), this.errorHint, type);
+            }.bind(this));
+
+            searchBox.on('tomtom.searchbox.resultselected', function (event) {
+                if (event.data && event.data.result) {
+                    this.onResultSelected(event.data.result, type);
+                }
+            }.bind(this));
+            searchBox.on('tomtom.searchbox.resultscleared', this.onResultCleared.bind(this, type));
+
+            return searchBox;
+        };
+
+        RoutingAB.prototype.onResultSelected = function (result, type) {
+            var pos = result.position;
+            this.state[type] = [pos.lng, pos.lat];
+
+            if (type === 'start') {
+                this.setCloseButton();
+            }
+
+            this.drawMarker(type, result.viewport);
+            this.calculateRoute();
+        };
+
+        RoutingAB.prototype.onResultCleared = function (type) {
+            this.state[type] = undefined;
+
+            if (this.state.marker[type]) {
+                this.state.marker[type].remove();
+                this.updateBounds();
+            }
+            if (type === 'start') {
+                this.switchToMyLocationButton();
+            }
+
+            this.calculateRoute();
+        };
+
+        RoutingAB.prototype.setCloseButton = function () {
+            var inputContainer = document.querySelector('.tt-search-box-input-container');
+            this.closeButton.classList.remove('-hidden');
+
+            if (document.querySelector('.my-location-button')) {
+                inputContainer.replaceChild(this.closeButton, this.upperSearchboxIcon);
+            }
+        };
+
+        RoutingAB.prototype.switchToMyLocationButton = function () {
+            var inputContainer = document.querySelector('.tt-search-box-input-container');
+            inputContainer.replaceChild(this.upperSearchboxIcon, this.closeButton);
+        };
+
+        RoutingAB.prototype.findFirstBuildingLayerId = function () {
+            var layers = map.getStyle().layers;
+            for (var index in layers) {
+                if (layers[index].type === 'fill-extrusion') {
+                    return layers[index].id;
+                }
+            }
+
+            throw new Error('Map style does not contain any layer with fill-extrusion type.');
+        };
+
+        new RoutingAB();
+
+        var infoHint = new InfoHint('info', 'bottom-center', 5000).addTo(document.getElementById('map'));
+        var errorHint = new InfoHint('error', 'bottom-center', 5000).addTo(document.getElementById('map'));
+
+        // Options for the fuzzySearch service
+        var searchOptions = {
+            key: 'OlO8VIsbJqdvsN93cH4a1ZsXdxXjJFvq',
+            language: 'en-GB',
+            limit: 5
+        };
+
+        // Options for the autocomplete service
+        var autocompleteOptions = {
+            key: 'OlO8VIsbJqdvsN93cH4a1ZsXdxXjJFvq',
+            language: 'en-GB'
+        };
+
+        var searchBoxOptions = {
+            minNumberOfCharacters: 0,
+            searchOptions: searchOptions,
+            autocompleteOptions: autocompleteOptions,
+            distanceFromPoint: [15.4, 53.0]
+        };
+        var ttSearchBox = new tt.plugins.SearchBox(tt.services, searchBoxOptions);
+        document.querySelector('.tt-side-panel__header').appendChild(ttSearchBox.getSearchBoxHTML());
+
+        var state = {
+            previousOptions: {
+                query: null,
+                center: null
+            },
+            callbackId: null,
+            userLocation: null
+        };
+
+        map.addControl(new tt.FullscreenControl({ container: document.querySelector('body') }));
+        map.addControl(new tt.NavigationControl());
+        new SidePanel('.tt-side-panel', map);
+
+        var geolocateControl = new tt.GeolocateControl({
+            positionOptions: {
+                enableHighAccuracy: false
+            }
+        });
+
+        geolocateControl.on('geolocate', function (event) {
+            var coordinates = event.coords;
+            state.userLocation = [coordinates.longitude, coordinates.latitude];
+            ttSearchBox.updateOptions(Object.assign({}, ttSearchBox.getOptions(), {
+                distanceFromPoint: state.userLocation
+            }));
+        });
+
+        map.addControl(geolocateControl);
+
+        var resultsManager = new ResultsManager();
+        var searchMarkersManager = new SearchMarkersManager(map);
+
+        map.on('load', handleMapEvent);
+        map.on('moveend', handleMapEvent);
+
+        ttSearchBox.on('tomtom.searchbox.resultscleared', handleResultsCleared);
+        ttSearchBox.on('tomtom.searchbox.resultsfound', handleResultsFound);
+        ttSearchBox.on('tomtom.searchbox.resultfocused', handleResultSelection);
+        ttSearchBox.on('tomtom.searchbox.resultselected', handleResultSelection);
+
+        function handleMapEvent() {
+            // Update search options to provide geobiasing based on current map center
+            var oldSearchOptions = ttSearchBox.getOptions().searchOptions;
+            var oldautocompleteOptions = ttSearchBox.getOptions().autocompleteOptions;
+            var newSearchOptions = Object.assign({}, oldSearchOptions, { center: map.getCenter() });
+            var newAutocompleteOptions = Object.assign({}, oldautocompleteOptions, { center: map.getCenter() });
+            ttSearchBox.updateOptions(Object.assign({}, searchBoxOptions, {
+                placeholder: 'Query e.g. Washington',
+                searchOptions: newSearchOptions,
+                autocompleteOptions: newAutocompleteOptions,
+                distanceFromPoint: state.userLocation
+            }));
+        }
+
+        function handleResultsCleared() {
+            searchMarkersManager.clear();
+            resultsManager.clear();
+        }
+
+        function handleResultsFound(event) {
+            // Display fuzzySearch results if request was triggered by pressing enter
+            if (event.data.results && event.data.results.fuzzySearch && event.data.metadata.triggeredBy === 'submit') {
+                var results = event.data.results.fuzzySearch.results;
+
+                if (results.length === 0) {
+                    handleNoResults();
+                }
+                searchMarkersManager.draw(results);
+                console.log(results);
+                resultsManager.success();
+                fillResultsList(results);
+                fitToViewport(results);
+            }
+
+            if (event.data.errors) {
+                errorHint.setMessage('There was an error returned by the service.');
+            }
+        }
+
+        function handleResultSelection(event) {
+            if (isFuzzySearchResult(event)) {
+                // Display selected result on the map
+                var result = event.data.result;
+                resultsManager.success();
+                searchMarkersManager.draw([result]);
+                fillResultsList([result]);
+                searchMarkersManager.openPopup(result.id);
+                fitToViewport(result);
+                state.callbackId = null;
+                infoHint.hide();
+            } else if (stateChangedSinceLastCall(event)) {
+                var currentCallbackId = Math.random().toString(36).substring(2, 9);
+                state.callbackId = currentCallbackId;
+                // Make fuzzySearch call with selected autocomplete result as filter
+                handleFuzzyCallForSegment(event, currentCallbackId);
+            }
+        }
+
+        function isFuzzySearchResult(event) {
+            return !('matches' in event.data.result);
+        }
+
+        function stateChangedSinceLastCall(event) {
+            return Object.keys(searchMarkersManager.getMarkers()).length === 0 || !(
+                state.previousOptions.query === event.data.result.value &&
+                state.previousOptions.center.toString() === map.getCenter().toString());
+        }
+
+        function getBounds(data) {
+            var southWest;
+            var northEast;
+            if (data.viewport) {
+                southWest = [data.viewport.topLeftPoint.lng, data.viewport.btmRightPoint.lat];
+                northEast = [data.viewport.btmRightPoint.lng, data.viewport.topLeftPoint.lat];
+            }
+            return [southWest, northEast];
+        }
+
+        function fitToViewport(markerData) {
+            if (!markerData || markerData instanceof Array && !markerData.length) {
+                return;
+            }
+            var bounds = new tt.LngLatBounds();
+            if (markerData instanceof Array) {
+                markerData.forEach(function (marker) {
+                    bounds.extend(getBounds(marker));
+                });
+            } else {
+                bounds.extend(getBounds(markerData));
+            }
+            map.fitBounds(bounds, { padding: 100, linear: true });
+        }
+
+        function handleFuzzyCallForSegment(event, currentCallbackId) {
+            var query = ttSearchBox.getValue();
+            var segmentType = event.data.result.type;
+
+            var commonOptions = Object.assign({}, searchOptions, {
+                query: query,
+                limit: 15,
+                center: map.getCenter(),
+                typeahead: true,
+                language: 'en-GB'
+            });
+
+            var filter;
+            if (segmentType === 'category') {
+                filter = { categorySet: event.data.result.id };
+            }
+            if (segmentType === 'brand') {
+                filter = { brandSet: event.data.result.value };
+            }
+            var options = Object.assign({}, commonOptions, filter);
+
+            infoHint.setMessage('Loading results...');
+            errorHint.hide();
+            resultsManager.loading();
+            tt.services.fuzzySearch(options)
+                .then(function (response) {
+                    if (state.callbackId !== currentCallbackId) {
+                        return;
+                    }
+                    if (response.results.length === 0) {
+                        handleNoResults();
+                        return;
+                    }
+                    resultsManager.success();
+                    searchMarkersManager.draw(response.results);
+                    fillResultsList(response.results);
+                    map.once('moveend', function () {
+                        state.previousOptions = {
+                            query: query,
+                            center: map.getCenter()
+                        };
+                    });
+                    fitToViewport(response.results);
+                })
+                .catch(function (error) {
+                    if (error.data && error.data.errorText) {
+                        errorHint.setMessage(error.data.errorText);
+                    }
+                    resultsManager.resultsNotFound();
+                })
+                .finally(function () {
+                    infoHint.hide();
+                });
+        }
+
+        function handleNoResults() {
+            resultsManager.clear();
+            resultsManager.resultsNotFound();
+            searchMarkersManager.clear();
+            infoHint.setMessage(
+                'No results for "' +
+                ttSearchBox.getValue() +
+                '" found nearby. Try changing the viewport.'
+            );
+        }
+
+        function fillResultsList(results) {
+            resultsManager.clear();
+            var resultList = DomHelpers.createResultList();
+            results.forEach(function (result) {
+                var distance = state.userLocation ? SearchResultsParser.getResultDistance(result) : undefined;
+                var addressLines = SearchResultsParser.getAddressLines(result);
+                var searchResult = this.DomHelpers.createSearchResult(
+                    addressLines[0],
+                    addressLines[1],
+                    distance ? Formatters.formatAsMetricDistance(distance) : ''
+                );
+                var resultItem = DomHelpers.createResultItem();
+                resultItem.appendChild(searchResult);
+                resultItem.setAttribute('data-id', result.id);
+                resultItem.onclick = function (event) {
+                    var id = event.currentTarget.getAttribute('data-id');
+                    searchMarkersManager.openPopup(id);
+                    searchMarkersManager.jumpToMarker(id);
+                };
+                resultList.appendChild(resultItem);
+            });
+            resultsManager.append(resultList);
+        }
+
+        // Define an array to store custom charging stations
+        var customChargingStations = [];
+
+        // Add a click event listener to the "Add Custom Charging Station" button
+        var addCustomStationButton = document.getElementById('addCustomStation');
+        addCustomStationButton.addEventListener('click', function () {
+            var customStationName = document.getElementById('customChargingStation').value;
+            if (customStationName) {
+                // Define the location of the custom charging station (latitude and longitude)
+                var customStationLocation = [20.028993, 50.062219]; // Replace with actual coordinates
+                customChargingStations.push({
+                    name: customStationName,
+                    position: customStationLocation
+                });
+                // Optionally, you can display the custom charging station on the map
+                displayCustomChargingStation(customStationLocation, customStationName);
+            }
+        });
+
+        // charging stations in between routes    
+        var calculateRouteButton = document.getElementById('calculateRoute');
+        calculateRouteButton.addEventListener('click', function () {
+            // Define the start and finish points for your route
+            var start = [18.9637, 72.8258]; // Mumbai coordinates
+            var finish = [18.5204, 73.8567]; // Pune coordinates
+
+            // Get the charging percentage and battery capacity from the input fields
+            var chargingPercentage = parseFloat(document.getElementById('chargingPercentage').value) || 0;
+            var batteryCapacity = parseFloat(document.getElementById('batteryCapacity').value) || 0;
+
+            // Calculate the total energy available for the Tata Nexon EV Max
+            var totalEnergy = (chargingPercentage / 100) * batteryCapacity;
+
+            // Use the TomTom Routing API to calculate the route between Mumbai and Pune
+            tt.services.calculateRoute({
+                key: 'OlO8VIsbJqdvsN93cH4a1ZsXdxXjJFvq',
+                locations: start[1] + ',' + start[0] + ':' + finish[1] + ',' + finish[0], // Route coordinates
+                traffic: false
+            })
+                .then(function (response) {
+                    var routeCoordinates = response.toGeoJson().features[0].geometry.coordinates;
+
+                    // Calculate the total distance of the route
+                    var totalDistance = calculateTotalDistance(routeCoordinates);
+
+                    // Estimate the energy consumption per unit distance for the Tata Nexon EV Max (kWh per kilometer)
+                    var energyConsumptionPerUnitDistance = 0.219; // Based on Tata Nexon EV Max specifications
+
+                    // Calculate how much distance the Tata Nexon EV Max can cover with the available energy
+                    var maxDistance = totalEnergy / energyConsumptionPerUnitDistance;
+
+                    // Display the estimated maximum distance the Tata Nexon EV Max can cover
+                    console.log("453:", maxDistance, "km");
+
+                    // Search for charging stations along the route
+                    tt.services.fuzzySearch({
+                        key: 'OlO8VIsbJqdvsN93cH4a1ZsXdxXjJFvq',
+                        query: 'charging station',
+                        location: routeCoordinates.join(':'), // Join route coordinates with ':'
+                        limit: 20 // Adjust the limit as needed
+                    })
+                        .then(function (response) {
+                            // Process the search results for charging stations
+                            var chargingStations = response.results;
+                            console.log(chargingStations);
+
+                            // Find the best charging station based on energy needs and charging capacity
+                            var bestChargingStation = findBestChargingStation(chargingStations, maxDistance);
+
+                            // Display the best charging station
+                            console.log("Best Charging Station:", bestChargingStation);
+                            // Add custom charging stations to the list
+                            chargingStations = chargingStations.concat(customChargingStations);
+
+                            // Find the nearest charging station based on energy needs and charging capacity
+                            var nearestChargingStation = findBestChargingStation(chargingStations, maxDistance);
+
+                            // Display the nearest charging station
+                            console.log("Nearest Charging Station:", nearestChargingStation);
+                        })
+                        .catch(function (error) {
+                            console.error("Error searching charging stations along route:", error);
+                        });
+                })
+                .catch(function (error) {
+                    console.error("Error calculating the route:", error);
+                });
+        });
+
+        // Helper function to display a custom charging station on the map (optional)
+        function displayCustomChargingStation(location, name) {
+            // You can use the TomTom JavaScript SDK to add custom markers to the map
+            // Example: https://developer.tomtom.com/maps-sdk-web/getting-started/displaying-markers
+
+            // For example, create a custom marker at the specified location with a label
+            var customMarker = new tt.Marker()
+                .setLngLat(location)
+                .addTo(map);
+
+            // Add a label to the custom marker
+            customMarker.getElement().innerHTML = '<div>' + name + '</div>';
+        }
+
+        // Helper function to calculate the total distance of a route
+        function calculateTotalDistance(coordinates) {
+            var totalDistance = 0;
+            for (var i = 1; i < coordinates.length; i++) {
+                totalDistance += tt.LngLat.convert(coordinates[i - 1]).distanceTo(tt.LngLat.convert(coordinates[i]));
+            }
+            return totalDistance / 1000; // Convert to kilometers
+        }
+
+        // Helper function to find the best charging station based on energy needs and capacity
+        function findBestChargingStation(chargingStations, maxDistance) {
+            var bestStation = null;
+            var minEnergyGap = Number.MAX_VALUE;
+
+            chargingStations.forEach(function (station) {
+                // Calculate the energy gap between current station and max distance
+                var energyGap = maxDistance - station.distance;
+                if (energyGap >= 0 && energyGap < minEnergyGap) {
+                    bestStation = station;
+                    minEnergyGap = energyGap;
+                }
+            });
+
+            return bestStation;
+        }
+
+    // ... Your existing code ...
+
+    // script.js
+
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    var chargingPercentageInput = document.getElementById('chargingPercentage');
+    var batteryCapacityInput = document.getElementById('batteryCapacity');
+    var calculateRouteButton = document.getElementById('calculateRoute');
+    var totalDistanceDisplay = document.getElementById('totalDistance');
+    var bestChargingStationDisplay = document.getElementById('bestChargingStation');
+    var nearestChargingStationDisplay = document.getElementById('nearestChargingStation');
+    
+    // Define an array to store charging stations
+    var chargingStations = [];
+
+    // Function to add charging stations to the array
+    function addChargingStation(name, address, distance) {
+        chargingStations.push({ name: name, address: address, distance: distance });
+    }
+
+    calculateRouteButton.addEventListener('click', function() {
+        // Get charging percentage and battery capacity from input fields
+        var chargingPercentage = parseFloat(chargingPercentageInput.value) || 0;
+        var batteryCapacity = parseFloat(batteryCapacityInput.value) || 0;
+
+        // Perform calculations and update the display
+        var totalDistance = calculateTotalDistance(chargingPercentage, batteryCapacity);
+        totalDistanceDisplay.textContent = totalDistance.toFixed(2) + ' km';
+
+        // Clear the charging stations array before adding new ones
+        chargingStations = [];
+
+        // Add charging stations based on the tt-side-panel (replace with your logic)
+        addChargingStation('Charging Station 1', '123 Main St, Mumbai', 10); // Example charging station in Mumbai
+        addChargingStation('Charging Station 2', '456 Elm St, Pune', 15); // Example charging station in Pune
+
+        // Detect the best charging station and display its name and address
+        var bestChargingStation = getBestChargingStation(chargingStations);
+        bestChargingStationDisplay.textContent = bestChargingStation.name + ' (' + bestChargingStation.address + ')';
+
+        // Detect the nearest charging station and display its name and address
+        var nearestChargingStation = getNearestChargingStation(chargingStations);
+        nearestChargingStationDisplay.textContent = nearestChargingStation.name + ' (' + nearestChargingStation.address + ')';
+    });
+
+    // Function to calculate total distance based on charging percentage and battery capacity
+    function calculateTotalDistance(chargingPercentage, batteryCapacity) {
+        // Example: Calculate total distance based on chargingPercentage and batteryCapacity
+        // Replace this with your actual calculation
+        return chargingPercentage * batteryCapacity / 100;
+    }
+
+    // Function to find the best charging station based on your criteria
+    function getBestChargingStation(chargingStations) {
+        // Example: Find the best charging station based on your criteria
+        // Replace this with your actual logic
+        return chargingStations[0]; // Example, return the first charging station
+    }
+
+    // Function to find the nearest charging station based on your criteria
+    function getNearestChargingStation(chargingStations) {
+        // Example: Find the nearest charging station based on your criteria
+        // Replace this with your actual logic
+        return chargingStations[1]; // Example, return the second charging station
+    }
+});
+
+
+
+
+    </script>
+</body>
+
+</html>
